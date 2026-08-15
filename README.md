@@ -62,6 +62,20 @@ dengan Android SDK sebelum dianggap berjalan**, terutama:
 
 `gradlew` dan `gradle/wrapper/` sudah disertakan (Gradle 8.7).
 
+### Build APK lewat GitHub Actions (tanpa Android SDK lokal)
+
+Ada workflow manual di `.github/workflows/build-apk.yml`:
+
+1. Buka tab **Actions** di repo GitHub → pilih workflow **Build APK**.
+2. Klik **Run workflow** (trigger manual, tidak jalan otomatis tiap push).
+3. Setelah selesai, buka run-nya → unduh artifact **goal-nudge-debug-apk** di
+   bagian bawah halaman.
+4. Extract zip-nya, dapat `app-debug.apk` — install langsung ke HP (perlu
+   mengizinkan "install dari sumber tidak dikenal" untuk APK debug ini).
+
+APK ini ditandatangani dengan debug keystore bawaan Android, cukup untuk testing
+sendiri tapi bukan untuk rilis ke Play Store.
+
 ## Struktur singkat
 
 ```
