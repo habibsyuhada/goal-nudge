@@ -2,6 +2,7 @@ package com.goalnudge.app.ui.goal
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,8 +41,18 @@ import com.goalnudge.app.data.repository.SaveGoalResult
 import com.goalnudge.app.domain.model.GoalType
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+private val DEADLINE_PRESETS: List<Pair<String, () -> LocalDate>> = listOf(
+    "Bulan ini" to { val now = LocalDate.now(); now.withDayOfMonth(now.lengthOfMonth()) },
+    "1 bulan ke depan" to { LocalDate.now().plusMonths(1) },
+    "3 bulan ke depan" to { LocalDate.now().plusMonths(3) },
+    "6 bulan ke depan" to { LocalDate.now().plusMonths(6) },
+    "Tahun ini" to { LocalDate.now().withMonth(12).withDayOfMonth(31) },
+    "1 tahun ke depan" to { LocalDate.now().plusYears(1) }
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,6 +125,16 @@ fun GoalEditScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DEADLINE_PRESETS.forEach { (label, computeDate) ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { form = form.copy(targetDate = computeDate(), error = null) },
+                        label = { Text(label) }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Text("Tipe progres", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
