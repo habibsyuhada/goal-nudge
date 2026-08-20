@@ -30,6 +30,26 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
             .build()
     }
 
+    /**
+     * Notifikasi silent untuk [com.goalnudge.app.service.NudgeListenerService]. ID-nya sengaja
+     * berbeda dari [SERVICE_NOTIFICATION_ID] — kedua foreground service ini bisa jalan
+     * bersamaan (listener persisten + overlay service sesaat), dan berbagi ID notifikasi bikin
+     * salah satu ke-cancel saat yang lain berhenti.
+     */
+    fun buildListenerServiceNotification(): Notification {
+        val openAppIntent = PendingIntent.getActivity(
+            context, 0, Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return NotificationCompat.Builder(context, CHANNEL_OVERLAY_SERVICE)
+            .setContentTitle(context.getString(R.string.notification_channel_overlay_service))
+            .setSmallIcon(android.R.drawable.ic_menu_myplaces)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setOngoing(true)
+            .setContentIntent(openAppIntent)
+            .build()
+    }
+
     /** Fallback saat overlay tidak bisa muncul (izin dicabut / gagal ditambahkan ke WindowManager). */
     fun showFallbackNudge(content: NudgeContent) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
@@ -57,6 +77,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
         const val CHANNEL_OVERLAY_SERVICE = "overlay_service"
         const val CHANNEL_FALLBACK = "nudge_fallback"
         const val SERVICE_NOTIFICATION_ID = 1001
+        const val LISTENER_SERVICE_NOTIFICATION_ID = 1003
         private const val FALLBACK_NOTIFICATION_ID_BASE = 2000
     }
 }

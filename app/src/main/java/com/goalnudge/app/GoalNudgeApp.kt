@@ -8,6 +8,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.goalnudge.app.notification.NotificationHelper
 import com.goalnudge.app.scheduling.NudgeSchedulingSetup
+import com.goalnudge.app.service.NudgeListenerServiceController
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -29,6 +30,7 @@ class GoalNudgeApp : Application(), Configuration.Provider {
         super.onCreate()
         createNotificationChannels()
         nudgeSchedulingSetup.ensureScheduled()
+        NudgeListenerServiceController.ensureRunning(this)
     }
 
     private fun createNotificationChannels() {

@@ -25,25 +25,45 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.goalnudge.app.domain.model.Tone
 import com.goalnudge.app.platform.OemAutostartHelper
 import com.goalnudge.app.platform.PermissionUtils
+import com.goalnudge.app.service.NudgeListenerServiceController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
+
+    var permissionRefreshKey by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                NudgeListenerServiceController.ensureRunning(context)
+                permissionRefreshKey++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -125,34 +145,37 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 
             Spacer(modifier = Modifier.height(24.dp))
             SectionTitle("Status izin")
-            PermissionRow(
-                label = "Tampil di atas app lain (overlay)",
-                granted = PermissionUtils.canDrawOverlays(context),
-                onFix = { context.startActivity(PermissionUtils.overlayPermissionIntent(context)) }
-            )
-            PermissionRow(
-                label = "Notifikasi",
-                granted = PermissionUtils.areNotificationsEnabled(context),
-                onFix = { context.startActivity(PermissionUtils.notificationSettingsIntent(context)) }
-            )
-            PermissionRow(
-                label = "Usage access (deteksi app navigasi aktif)",
-                granted = PermissionUtils.hasUsageAccess(context),
-                onFix = { context.startActivity(PermissionUtils.usageAccessIntent()) }
-            )
-            PermissionRow(
-                label = "Battery optimization diabaikan",
-                granted = PermissionUtils.isIgnoringBatteryOptimizations(context),
-                onFix = { context.startActivity(PermissionUtils.ignoreBatteryOptimizationsIntent(context)) }
-            )
+            key(permissionRefreshKey) {
+                PermissionRow(
+                    label = "Tampil di atas app lain (overlay)",
+                    granted = PermissionUtils.canDrawOverlays(context),
+                    onFix = { context.startActivity(PermissionUtils.overlayPermissionIntent(context)) }
+                )
+                PermissionRow(
+                    label = "Notifikasi",
+                    granted = PermissionUtils.areNotificationsEnabled(context),
+                    onFix = { context.startActivity(PermissionUtils.notificationSettingsIntent(context)) }
+                )
+                PermissionRow(
+                    label = "Usage access (deteksi app navigasi aktif)",
+                    granted = PermissionUtils.hasUsageAccess(context),
+                    onFix = { context.startActivity(PermissionUtils.usageAccessIntent()) }
+                )
+                PermissionRow(
+                    label = "Battery optimization diabaikan",
+                    granted = PermissionUtils.isIgnoringBatteryOptimizations(context),
+                    onFix = { context.startActivity(PermissionUtils.ignoreBatteryOptimizationsIntent(context)) }
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { OemAutostartHelper.tryOpenAutostartSettings(context) }) {
-                Text("Buka pengaturan autostart HP (Xiaomi/Oppo/Vivo)")
+                Text("Buka pengaturan autostart/baterai HP (Xiaomi/Oppo/Vivo/Samsung)")
             }
             Text(
-                "Beberapa HP mematikan service background secara agresif. Aktifkan autostart " +
-                    "untuk Goal Nudge supaya nudge tetap muncul.",
+                "Beberapa HP mematikan service background secara agresif (autostart manager di " +
+                    "Xiaomi/Oppo/Vivo, \"Sleeping apps\" di Samsung). Kecualikan Goal Nudge supaya " +
+                    "nudge tetap muncul.",
                 style = MaterialTheme.typography.bodySmall
             )
         }

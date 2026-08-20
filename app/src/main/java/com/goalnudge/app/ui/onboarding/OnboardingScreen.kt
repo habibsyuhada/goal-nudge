@@ -34,6 +34,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.goalnudge.app.platform.OemAutostartHelper
 import com.goalnudge.app.platform.OemBrand
 import com.goalnudge.app.platform.PermissionUtils
+import com.goalnudge.app.service.NudgeListenerServiceController
 
 /**
  * Onboarding permission jujur (PLAN.md §6 Fase 3): jelaskan kenapa tiap izin dibutuhkan,
@@ -55,6 +56,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
                 overlayGranted = PermissionUtils.canDrawOverlays(context)
                 notificationsGranted = PermissionUtils.areNotificationsEnabled(context)
                 batteryIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context)
+                NudgeListenerServiceController.ensureRunning(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -181,15 +183,26 @@ private fun BatteryStep(ignored: Boolean, onRequest: () -> Unit) {
 
 @Composable
 private fun OemAutostartStep(brand: OemBrand, onRequest: () -> Unit) {
-    Text("4. Autostart HP ${brand.name}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    val isSamsung = brand == OemBrand.SAMSUNG
+    Text(
+        if (isSamsung) "4. Battery management HP Samsung" else "4. Autostart HP ${brand.name}",
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold
+    )
     Spacer(modifier = Modifier.height(12.dp))
     Text(
-        "HP kamu punya pengelola autostart sendiri di luar Android biasa. Kalau tidak diaktifkan, " +
-            "sistem HP bisa mematikan Goal Nudge diam-diam dan nudge berhenti muncul."
+        if (isSamsung) {
+            "One UI punya \"Sleeping apps\" / battery management sendiri di luar Android biasa. " +
+                "Kalau Goal Nudge tidak dikecualikan (jangan taruh di sleeping apps), Samsung bisa " +
+                "mematikannya diam-diam setelah beberapa hari dan nudge berhenti muncul."
+        } else {
+            "HP kamu punya pengelola autostart sendiri di luar Android biasa. Kalau tidak diaktifkan, " +
+                "sistem HP bisa mematikan Goal Nudge diam-diam dan nudge berhenti muncul."
+        }
     )
     Spacer(modifier = Modifier.height(16.dp))
     OutlinedButton(onClick = onRequest, modifier = Modifier.fillMaxWidth()) {
-        Text("Buka pengaturan autostart")
+        Text(if (isSamsung) "Buka pengaturan baterai" else "Buka pengaturan autostart")
     }
 }
 

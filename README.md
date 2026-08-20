@@ -6,7 +6,9 @@ engine, guard rails, dan metrik lokal. Kotlin + Jetpack Compose, native Android.
 ## Yang sudah diimplementasikan
 
 **Fase 1 — Prototype teknis**
-- `service/UserPresentReceiver.kt` — trigger `ACTION_USER_PRESENT`
+- `service/NudgeListenerService.kt` — foreground service persisten yang mendaftarkan
+  receiver `ACTION_USER_PRESENT` secara runtime (bukan lewat manifest — sejak Android 8.0
+  broadcast implisit itu tidak dikirim ke receiver manifest)
 - `overlay/OverlayManager.kt` + `overlay/NudgeOverlayCard.kt` — overlay
   `TYPE_APPLICATION_OVERLAY` full-screen, dismissible (tombol / swipe / timeout)
 - `service/UnlockOverlayService.kt` — foreground service, di-start **setelah** overlay
