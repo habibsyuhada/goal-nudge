@@ -34,6 +34,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.goalnudge.app.platform.OemAutostartHelper
 import com.goalnudge.app.platform.OemBrand
 import com.goalnudge.app.platform.PermissionUtils
+import com.goalnudge.app.service.NudgeListenerServiceController
 
 /**
  * Onboarding permission jujur (PLAN.md §6 Fase 3): jelaskan kenapa tiap izin dibutuhkan,
@@ -55,6 +56,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
                 overlayGranted = PermissionUtils.canDrawOverlays(context)
                 notificationsGranted = PermissionUtils.areNotificationsEnabled(context)
                 batteryIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context)
+                NudgeListenerServiceController.ensureRunning(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

@@ -52,14 +52,17 @@
                 android:value="goal_nudge_overlay_on_unlock" />
         </service>
 
-        <!-- Fase 1: trigger utama, unlock HP -->
-        <receiver
-            android:name=".service.UserPresentReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.USER_PRESENT" />
-            </intent-filter>
-        </receiver>
+        <!-- Fase 1: trigger utama, unlock HP. ACTION_USER_PRESENT sejak Android 8.0 hanya
+             dikirim ke receiver yang didaftarkan runtime (lihat NudgeListenerService), BUKAN
+             ke receiver manifest — jangan deklarasikan <receiver> untuk itu di sini. -->
+        <service
+            android:name=".service.NudgeListenerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="goal_nudge_unlock_listener" />
+        </service>
 
         <!-- Fase 1: service harus survive reboot -->
         <receiver
