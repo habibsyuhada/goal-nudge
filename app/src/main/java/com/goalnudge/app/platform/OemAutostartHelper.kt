@@ -8,11 +8,13 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 
-enum class OemBrand { XIAOMI, OPPO, VIVO, UNKNOWN }
+enum class OemBrand { XIAOMI, OPPO, VIVO, SAMSUNG, UNKNOWN }
 
 /**
- * OEM Cina (Xiaomi/Oppo/Vivo) punya autostart manager sendiri di luar sistem izin Android
- * standar — PLAN.md §3. Ini best-effort: intent komponen tidak didokumentasikan resmi dan
+ * OEM tertentu (Xiaomi/Oppo/Vivo/Samsung) punya pengelola baterai/autostart sendiri di luar
+ * sistem izin Android standar — PLAN.md §3. Samsung One UI tidak punya "autostart manager"
+ * literal, tapi "Sleeping apps" di Device Care sama agresifnya membunuh foreground service kita
+ * kalau tidak dikecualikan. Ini best-effort: intent komponen tidak didokumentasikan resmi dan
  * bisa berubah antar versi ROM, jadi selalu fallback ke halaman detail aplikasi.
  */
 object OemAutostartHelper {
@@ -21,6 +23,7 @@ object OemAutostartHelper {
         "xiaomi" -> OemBrand.XIAOMI
         "oppo", "realme" -> OemBrand.OPPO
         "vivo" -> OemBrand.VIVO
+        "samsung" -> OemBrand.SAMSUNG
         else -> OemBrand.UNKNOWN
     }
 
@@ -36,6 +39,11 @@ object OemAutostartHelper {
         OemBrand.VIVO to listOf(
             ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
             ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+        ),
+        OemBrand.SAMSUNG to listOf(
+            // Device Care → Battery — dari sini "Background usage limits" / "Sleeping apps"
+            // tinggal satu tap. Tidak ada deep-link resmi langsung ke daftar sleeping apps.
+            ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")
         )
     )
 

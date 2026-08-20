@@ -170,11 +170,12 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { OemAutostartHelper.tryOpenAutostartSettings(context) }) {
-                Text("Buka pengaturan autostart HP (Xiaomi/Oppo/Vivo)")
+                Text("Buka pengaturan autostart/baterai HP (Xiaomi/Oppo/Vivo/Samsung)")
             }
             Text(
-                "Beberapa HP mematikan service background secara agresif. Aktifkan autostart " +
-                    "untuk Goal Nudge supaya nudge tetap muncul.",
+                "Beberapa HP mematikan service background secara agresif (autostart manager di " +
+                    "Xiaomi/Oppo/Vivo, \"Sleeping apps\" di Samsung). Kecualikan Goal Nudge supaya " +
+                    "nudge tetap muncul.",
                 style = MaterialTheme.typography.bodySmall
             )
         }
