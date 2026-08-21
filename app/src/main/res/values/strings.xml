@@ -3,6 +3,6 @@
     <string name="notification_channel_overlay_service">Layanan Nudge Aktif</string>
     <string name="notification_channel_overlay_service_desc">Menjaga nudge goal muncul saat kamu unlock HP.</string>
     <string name="notification_channel_fallback">Nudge Goal</string>
-    <string name="notification_channel_fallback_desc">Pengingat goal saat overlay tidak bisa muncul.</string>
+    <string name="notification_channel_fallback_desc">Pengingat goal penuh layar saat kamu unlock HP.</string>
     <string name="widget_description">Goal aktif + sisa hari + streak</string>
 </resources>

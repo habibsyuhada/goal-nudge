@@ -8,15 +8,14 @@ import android.content.IntentFilter
 import android.os.IBinder
 import androidx.core.content.ContextCompat
 import com.goalnudge.app.data.datastore.SettingsDataStore
+import com.goalnudge.app.data.local.entity.NudgeOutcome
+import com.goalnudge.app.data.repository.NudgeEventRepository
 import com.goalnudge.app.di.ApplicationScope
 import com.goalnudge.app.notification.NotificationHelper
-import com.goalnudge.app.overlay.OverlayManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -25,7 +24,9 @@ import javax.inject.Inject
  * didaftarkan lewat AndroidManifest — hanya ke receiver yang didaftarkan runtime lewat
  * [Context.registerReceiver]. Service ini menjaga receiver itu tetap terdaftar selama app
  * hidup di background. Diminta jalan dari [com.goalnudge.app.GoalNudgeApp.onCreate] dan
- * [BootCompletedReceiver] — hanya kalau izin overlay sudah diberikan.
+ * [BootCompletedReceiver]. Nudge ditampilkan lewat [NotificationHelper.showUrgentNudge]
+ * (full-screen intent notification) — kalau service ini sendiri dibunuh OS/OEM sebelum
+ * unlock berikutnya, [com.goalnudge.app.scheduling.NudgeScheduleWorker] jadi jaring pengaman.
  */
 @AndroidEntryPoint
 class NudgeListenerService : Service() {
@@ -34,13 +35,13 @@ class NudgeListenerService : Service() {
     lateinit var nudgeSelector: NudgeSelector
 
     @Inject
-    lateinit var overlayManager: OverlayManager
-
-    @Inject
     lateinit var settingsDataStore: SettingsDataStore
 
     @Inject
     lateinit var notificationHelper: NotificationHelper
+
+    @Inject
+    lateinit var nudgeEventRepository: NudgeEventRepository
 
     @Inject
     @ApplicationScope
@@ -85,9 +86,13 @@ class NudgeListenerService : Service() {
         when (val attempt = nudgeSelector.selectForUnlock()) {
             is NudgeAttempt.Show -> {
                 val tone = settingsDataStore.settings.first().tone
-                withContext(Dispatchers.Main) {
-                    overlayManager.showOverlay(attempt.content, attempt.window, tone)
-                }
+                notificationHelper.showUrgentNudge(attempt.content, attempt.window, tone)
+                nudgeEventRepository.record(
+                    attempt.content.goalId,
+                    attempt.window,
+                    NudgeOutcome.FALLBACK_NOTIFICATION,
+                    System.currentTimeMillis()
+                )
             }
             is NudgeAttempt.Blocked, NudgeAttempt.NoActiveGoals -> Unit
         }
