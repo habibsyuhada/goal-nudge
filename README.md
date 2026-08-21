@@ -9,12 +9,16 @@ engine, guard rails, dan metrik lokal. Kotlin + Jetpack Compose, native Android.
 - `service/NudgeListenerService.kt` — foreground service persisten yang mendaftarkan
   receiver `ACTION_USER_PRESENT` secara runtime (bukan lewat manifest — sejak Android 8.0
   broadcast implisit itu tidak dikirim ke receiver manifest)
-- `overlay/OverlayManager.kt` + `overlay/NudgeOverlayCard.kt` — overlay
-  `TYPE_APPLICATION_OVERLAY` full-screen, dismissible (tombol / swipe / timeout)
-- `service/UnlockOverlayService.kt` — foreground service, di-start **setelah** overlay
-  visible (urutan sesuai catatan Android 15 di PLAN.md §3)
+- `notification/NotificationHelper.kt` (`showUrgentNudge`) + `ui/nudge/NudgeFullScreenActivity.kt`
+  + `overlay/NudgeOverlayCard.kt` — kartu nudge dibuka lewat `setFullScreenIntent`, tampil penuh
+  layar bahkan di atas lock screen, dismissible (tombol / swipe / timeout). **Bukan lagi**
+  `TYPE_APPLICATION_OVERLAY` + `SYSTEM_ALERT_WINDOW`: pendekatan overlay lama gagal reliable
+  di banyak HP (background service-nya keburu dibunuh OS/OEM sebelum sempat menambahkan window),
+  jadi diganti ke jalur notifikasi resmi Android yang tidak butuh izin overlay dan tetap jalan
+  walau proses app baru saja dibangunkan dari kondisi mati.
 - `service/BootCompletedReceiver.kt` — re-schedule setelah reboot
-- Onboarding meminta `SYSTEM_ALERT_WINDOW` dengan penjelasan jujur
+- Onboarding (Android 14+) meminta `USE_FULL_SCREEN_INTENT` lewat halaman Settings khusus,
+  dengan penjelasan jujur
 
 **Fase 2 — MVP fungsional**
 - `data/repository/GoalRepository.kt` + `ui/goal/*` — CRUD goal (judul, why, target
@@ -29,8 +33,8 @@ engine, guard rails, dan metrik lokal. Kotlin + Jetpack Compose, native Android.
 - `domain/guard/ContextGuard.kt` + `CameraUsageObserver.kt` — skip saat telepon/kamera
   aktif, deteksi app navigasi via Usage Access (best-effort, fail-open)
 - `widget/GoalWidget.kt` — widget home screen (Glance)
-- `scheduling/NudgeScheduleWorker.kt` — fallback notifikasi terjadwal kalau jendela
-  nudge terlewat atau overlay gagal ditambahkan
+- `scheduling/NudgeScheduleWorker.kt` — jaring pengaman terjadwal, memicu nudge lewat jalur
+  yang sama (`showUrgentNudge`) kalau `NudgeListenerService` tidak sempat menangkap unlock
 - `ui/onboarding/OnboardingScreen.kt` + `platform/OemAutostartHelper.kt` — onboarding
   izin jujur + guide autostart Xiaomi/Oppo/Vivo (best-effort, fallback ke halaman app)
 - Tombol "jeda 3 hari" di `ui/settings/SettingsScreen.kt`
@@ -51,9 +55,14 @@ Android/Compose/Hilt/Room/WorkManager standar, tapi **wajib dibuild & diuji di m
 dengan Android SDK sebelum dianggap berjalan**, terutama:
 
 - Uji fisik di HP sendiri + minimal 1 HP Xiaomi/Oppo/Vivo (PLAN.md §6 Fase 1) —
-  overlay-on-unlock sangat bergantung perilaku OEM, tidak bisa disimulasikan.
+  reliability `NudgeListenerService` di background sangat bergantung perilaku OEM, tidak
+  bisa disimulasikan.
 - Reliability service setelah reboot & setelah di-swipe dari recent apps.
 - Perilaku `ForegroundServiceStartNotAllowedException` di Android 15 nyata.
+- Full-screen intent notification di Android 14+ (API 34): perlu dicek apakah user harus
+  mengaktifkan `USE_FULL_SCREEN_INTENT` manual lewat halaman Settings (onboarding sudah
+  mengarahkan ke sana), dan apakah beberapa OEM mendemosikannya jadi heads-up notification
+  biasa alih-alih benar-benar membuka activity secara otomatis.
 
 ## Build & run
 
@@ -85,10 +94,10 @@ app/src/main/java/com/goalnudge/app/
 ├── data/            # Room (entity/dao), DataStore settings, repository
 ├── domain/          # model, template engine, guard (rate limit/context)
 ├── service/         # foreground service, BroadcastReceiver, NudgeSelector
-├── overlay/          # WindowManager overlay + Compose card
-├── scheduling/       # WorkManager fallback
-├── notification/     # notifikasi fallback
+├── overlay/          # Compose card nudge (dipakai activity full-screen)
+├── scheduling/       # WorkManager jaring pengaman
+├── notification/     # notifikasi full-screen intent
 ├── platform/          # permission & OEM autostart helpers
 ├── widget/            # Glance home screen widget
-└── ui/                # Compose screens (goal, settings, metrics, onboarding)
+└── ui/                # Compose screens (goal, settings, metrics, onboarding, nudge)
 ```

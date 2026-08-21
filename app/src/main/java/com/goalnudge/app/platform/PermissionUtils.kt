@@ -1,5 +1,6 @@
 package com.goalnudge.app.platform
 
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -11,10 +12,19 @@ import androidx.core.app.NotificationManagerCompat
 /** Semua pengecekan & intent permission dikumpulkan di sini — onboarding harus jujur (PLAN.md §6). */
 object PermissionUtils {
 
-    fun canDrawOverlays(context: Context): Boolean = Settings.canDrawOverlays(context)
+    /**
+     * Android 14+ (API 34) hanya mengizinkan `USE_FULL_SCREEN_INTENT` otomatis untuk app
+     * telepon/alarm — app lain harus diaktifkan manual lewat halaman Settings khusus. Di
+     * bawah API 34 selalu true (izinnya normal, dikabulkan otomatis saat install).
+     */
+    fun canUseFullScreenIntent(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return manager?.canUseFullScreenIntent() ?: true
+    }
 
-    fun overlayPermissionIntent(context: Context): Intent =
-        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+    fun fullScreenIntentSettingsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${context.packageName}"))
 
     fun areNotificationsEnabled(context: Context): Boolean =
         NotificationManagerCompat.from(context).areNotificationsEnabled()

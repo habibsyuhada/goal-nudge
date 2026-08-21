@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Fase 1: overlay on-unlock -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Fase 1: nudge on-unlock lewat full-screen intent notification -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -42,16 +42,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Fase 1: foreground service yang memegang overlay window -->
-        <service
-            android:name=".service.UnlockOverlayService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="goal_nudge_overlay_on_unlock" />
-        </service>
-
         <!-- Fase 1: trigger utama, unlock HP. ACTION_USER_PRESENT sejak Android 8.0 hanya
              dikirim ke receiver yang didaftarkan runtime (lihat NudgeListenerService), BUKAN
              ke receiver manifest — jangan deklarasikan <receiver> untuk itu di sini. -->
@@ -63,6 +53,16 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="goal_nudge_unlock_listener" />
         </service>
+
+        <!-- Fase 1: kartu nudge penuh layar, dibuka lewat setFullScreenIntent dari
+             NotificationHelper.showUrgentNudge — muncul bahkan di atas lock screen. -->
+        <activity
+            android:name=".ui.nudge.NudgeFullScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.GoalNudge" />
 
         <!-- Fase 1: service harus survive reboot -->
         <receiver

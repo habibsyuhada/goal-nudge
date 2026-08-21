@@ -1,5 +1,6 @@
 package com.goalnudge.app.ui.settings
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -146,11 +147,13 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             Spacer(modifier = Modifier.height(24.dp))
             SectionTitle("Status izin")
             key(permissionRefreshKey) {
-                PermissionRow(
-                    label = "Tampil di atas app lain (overlay)",
-                    granted = PermissionUtils.canDrawOverlays(context),
-                    onFix = { context.startActivity(PermissionUtils.overlayPermissionIntent(context)) }
-                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    PermissionRow(
+                        label = "Tampil penuh layar (full-screen intent)",
+                        granted = PermissionUtils.canUseFullScreenIntent(context),
+                        onFix = { context.startActivity(PermissionUtils.fullScreenIntentSettingsIntent(context)) }
+                    )
+                }
                 PermissionRow(
                     label = "Notifikasi",
                     granted = PermissionUtils.areNotificationsEnabled(context),

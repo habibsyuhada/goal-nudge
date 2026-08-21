@@ -1,6 +1,7 @@
 package com.goalnudge.app.ui.onboarding
 
 import android.Manifest
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +46,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     val context = LocalContext.current
     var step by remember { mutableIntStateOf(0) }
 
-    var overlayGranted by remember { mutableStateOf(PermissionUtils.canDrawOverlays(context)) }
+    var fullScreenIntentGranted by remember { mutableStateOf(PermissionUtils.canUseFullScreenIntent(context)) }
     var notificationsGranted by remember { mutableStateOf(PermissionUtils.areNotificationsEnabled(context)) }
     var batteryIgnored by remember { mutableStateOf(PermissionUtils.isIgnoringBatteryOptimizations(context)) }
 
@@ -53,7 +54,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                overlayGranted = PermissionUtils.canDrawOverlays(context)
+                fullScreenIntentGranted = PermissionUtils.canUseFullScreenIntent(context)
                 notificationsGranted = PermissionUtils.areNotificationsEnabled(context)
                 batteryIgnored = PermissionUtils.isIgnoringBatteryOptimizations(context)
                 NudgeListenerServiceController.ensureRunning(context)
@@ -71,7 +72,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     val steps = remember(brand) {
         buildList {
             add(OnboardingStep.Intro)
-            add(OnboardingStep.Overlay)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) add(OnboardingStep.FullScreenIntent)
             add(OnboardingStep.Notifications)
             add(OnboardingStep.Battery)
             if (brand != OemBrand.UNKNOWN) add(OnboardingStep.OemAutostart)
@@ -89,9 +90,9 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
         ) {
             when (steps[step]) {
                 OnboardingStep.Intro -> IntroStep()
-                OnboardingStep.Overlay -> OverlayStep(
-                    granted = overlayGranted,
-                    onRequest = { context.startActivity(PermissionUtils.overlayPermissionIntent(context)) }
+                OnboardingStep.FullScreenIntent -> FullScreenIntentStep(
+                    granted = fullScreenIntentGranted,
+                    onRequest = { context.startActivity(PermissionUtils.fullScreenIntentSettingsIntent(context)) }
                 )
                 OnboardingStep.Notifications -> NotificationsStep(
                     granted = notificationsGranted,
@@ -136,7 +137,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     }
 }
 
-private enum class OnboardingStep { Intro, Overlay, Notifications, Battery, OemAutostart, Done }
+private enum class OnboardingStep { Intro, FullScreenIntent, Notifications, Battery, OemAutostart, Done }
 
 @Composable
 private fun StepIndicator(step: Int, totalSteps: Int) {
@@ -155,10 +156,13 @@ private fun IntroStep() {
 }
 
 @Composable
-private fun OverlayStep(granted: Boolean, onRequest: () -> Unit) {
-    Text("1. Tampil di atas app lain", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+private fun FullScreenIntentStep(granted: Boolean, onRequest: () -> Unit) {
+    Text("1. Tampil penuh layar", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(12.dp))
-    Text("Izin ini WAJIB — tanpanya overlay nudge tidak bisa muncul sama sekali setelah unlock.")
+    Text(
+        "Izin ini WAJIB di HP kamu — tanpanya, kartu nudge cuma muncul sebagai notifikasi " +
+            "biasa yang bisa terlewat, bukan kartu penuh layar setelah unlock."
+    )
     Spacer(modifier = Modifier.height(16.dp))
     PermissionStatusButton(granted = granted, onRequest = onRequest)
 }
@@ -167,7 +171,7 @@ private fun OverlayStep(granted: Boolean, onRequest: () -> Unit) {
 private fun NotificationsStep(granted: Boolean, onRequest: () -> Unit) {
     Text("2. Notifikasi", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(12.dp))
-    Text("Dipakai sebagai cadangan kalau overlay gagal muncul, dan untuk pengingat khusus deadline.")
+    Text("Dipakai untuk menampilkan kartu nudge setiap unlock, dan untuk pengingat khusus deadline.")
     Spacer(modifier = Modifier.height(16.dp))
     PermissionStatusButton(granted = granted, onRequest = onRequest)
 }
