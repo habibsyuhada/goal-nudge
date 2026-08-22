@@ -21,7 +21,7 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
 
     /**
      * Notifikasi silent untuk [com.goalnudge.app.service.NudgeListenerService] — foreground
-     * service persisten yang menjaga receiver `ACTION_USER_PRESENT` tetap terdaftar.
+     * service persisten yang menjaga receiver `ACTION_SCREEN_ON` tetap terdaftar.
      */
     fun buildListenerServiceNotification(): Notification {
         val openAppIntent = PendingIntent.getActivity(
@@ -40,10 +40,13 @@ class NotificationHelper @Inject constructor(@ApplicationContext private val con
     /**
      * Jalur utama nudge sekarang: notifikasi dengan [NotificationCompat.Builder.setFullScreenIntent]
      * yang membuka [NudgeFullScreenActivity] penuh layar (bahkan di atas lock screen), dipanggil
-     * baik dari unlock realtime ([com.goalnudge.app.service.NudgeListenerService]) maupun dari
-     * jaring pengaman terjadwal ([com.goalnudge.app.scheduling.NudgeScheduleWorker]) — keduanya
-     * memberi pengalaman yang sama, tidak lagi dibedakan overlay vs notifikasi biasa. Kalau OS
-     * mendemosikannya jadi notifikasi biasa (Android 14+ tanpa izin USE_FULL_SCREEN_INTENT —
+     * baik dari layar-menyala realtime ([com.goalnudge.app.service.NudgeListenerService]) maupun
+     * dari jaring pengaman terjadwal ([com.goalnudge.app.scheduling.NudgeScheduleWorker]) —
+     * keduanya memberi pengalaman yang sama. PENTING: `setFullScreenIntent` cuma auto-membuka
+     * activity kalau notifikasi ini di-post SAAT layar mati/masih terkunci (pembatasan resmi
+     * Android sejak API 29) — makanya pemanggilnya harus di momen layar baru menyala, BUKAN
+     * setelah user selesai unlock (lihat catatan di NudgeListenerService). Kalau HP sudah
+     * kadung unlocked, atau OS mendemosikannya (Android 14+ tanpa izin USE_FULL_SCREEN_INTENT —
      * lihat OnboardingScreen), tap notifikasi tetap membuka activity yang sama.
      */
     fun showUrgentNudge(content: NudgeContent, window: NudgeWindow, tone: Tone) {

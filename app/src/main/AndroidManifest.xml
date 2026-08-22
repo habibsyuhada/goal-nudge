@@ -42,7 +42,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Fase 1: trigger utama, unlock HP. ACTION_USER_PRESENT sejak Android 8.0 hanya
+        <!-- Fase 1: trigger utama, layar menyala. ACTION_SCREEN_ON sejak Android 8.0 hanya
              dikirim ke receiver yang didaftarkan runtime (lihat NudgeListenerService), BUKAN
              ke receiver manifest — jangan deklarasikan <receiver> untuk itu di sini. -->
         <service

@@ -20,13 +20,22 @@ import javax.inject.Inject
 
 /**
  * Foreground service persisten yang menjadi trigger utama nudge (PLAN.md §1/§3): sejak
- * Android 8.0, broadcast implisit `ACTION_USER_PRESENT` TIDAK dikirim ke receiver yang
+ * Android 8.0, broadcast implisit `ACTION_SCREEN_ON` TIDAK dikirim ke receiver yang
  * didaftarkan lewat AndroidManifest — hanya ke receiver yang didaftarkan runtime lewat
  * [Context.registerReceiver]. Service ini menjaga receiver itu tetap terdaftar selama app
  * hidup di background. Diminta jalan dari [com.goalnudge.app.GoalNudgeApp.onCreate] dan
- * [BootCompletedReceiver]. Nudge ditampilkan lewat [NotificationHelper.showUrgentNudge]
- * (full-screen intent notification) — kalau service ini sendiri dibunuh OS/OEM sebelum
- * unlock berikutnya, [com.goalnudge.app.scheduling.NudgeScheduleWorker] jadi jaring pengaman.
+ * [BootCompletedReceiver].
+ *
+ * Trigger-nya `ACTION_SCREEN_ON`, BUKAN `ACTION_USER_PRESENT` (setelah unlock) — sengaja.
+ * `NotificationCompat.Builder.setFullScreenIntent` di [NotificationHelper.showUrgentNudge]
+ * hanya auto-membuka activity kalau notifikasi di-post SAAT layar mati/masih terkunci
+ * (pembatasan resmi Android, sama seperti pola app telepon/alarm); begitu `ACTION_USER_PRESENT`
+ * terpicu, user sudah selesai unlock dan Android cuma menampilkannya sebagai notifikasi biasa
+ * (persis gejala yang dilaporkan: "cuma muncul sebagai push notification"). Dengan
+ * `ACTION_SCREEN_ON`, nudge diposting begitu layar menyala — kalau HP masih terkunci saat itu,
+ * kartunya auto-muncul di atas lock screen; kalau tidak, tetap jadi notifikasi yang bisa ditap.
+ * Kalau service ini sendiri dibunuh OS/OEM sebelum layar menyala berikutnya,
+ * [com.goalnudge.app.scheduling.NudgeScheduleWorker] jadi jaring pengaman.
  */
 @AndroidEntryPoint
 class NudgeListenerService : Service() {
@@ -47,23 +56,23 @@ class NudgeListenerService : Service() {
     @ApplicationScope
     lateinit var applicationScope: CoroutineScope
 
-    private var userPresentReceiver: BroadcastReceiver? = null
+    private var screenOnReceiver: BroadcastReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                if (intent.action != Intent.ACTION_USER_PRESENT) return
-                applicationScope.launch { handleUnlock() }
+                if (intent.action != Intent.ACTION_SCREEN_ON) return
+                applicationScope.launch { handleScreenOn() }
             }
         }
         ContextCompat.registerReceiver(
             this,
             receiver,
-            IntentFilter(Intent.ACTION_USER_PRESENT),
+            IntentFilter(Intent.ACTION_SCREEN_ON),
             ContextCompat.RECEIVER_NOT_EXPORTED
         )
-        userPresentReceiver = receiver
+        screenOnReceiver = receiver
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -75,14 +84,14 @@ class NudgeListenerService : Service() {
     }
 
     override fun onDestroy() {
-        userPresentReceiver?.let { runCatching { unregisterReceiver(it) } }
-        userPresentReceiver = null
+        screenOnReceiver?.let { runCatching { unregisterReceiver(it) } }
+        screenOnReceiver = null
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent): IBinder? = null
 
-    private suspend fun handleUnlock() {
+    private suspend fun handleScreenOn() {
         when (val attempt = nudgeSelector.selectForUnlock()) {
             is NudgeAttempt.Show -> {
                 val tone = settingsDataStore.settings.first().tone

@@ -7,7 +7,7 @@ engine, guard rails, dan metrik lokal. Kotlin + Jetpack Compose, native Android.
 
 **Fase 1 — Prototype teknis**
 - `service/NudgeListenerService.kt` — foreground service persisten yang mendaftarkan
-  receiver `ACTION_USER_PRESENT` secara runtime (bukan lewat manifest — sejak Android 8.0
+  receiver `ACTION_SCREEN_ON` secara runtime (bukan lewat manifest — sejak Android 8.0
   broadcast implisit itu tidak dikirim ke receiver manifest)
 - `notification/NotificationHelper.kt` (`showUrgentNudge`) + `ui/nudge/NudgeFullScreenActivity.kt`
   + `overlay/NudgeOverlayCard.kt` — kartu nudge dibuka lewat `setFullScreenIntent`, tampil penuh
@@ -15,7 +15,11 @@ engine, guard rails, dan metrik lokal. Kotlin + Jetpack Compose, native Android.
   `TYPE_APPLICATION_OVERLAY` + `SYSTEM_ALERT_WINDOW`: pendekatan overlay lama gagal reliable
   di banyak HP (background service-nya keburu dibunuh OS/OEM sebelum sempat menambahkan window),
   jadi diganti ke jalur notifikasi resmi Android yang tidak butuh izin overlay dan tetap jalan
-  walau proses app baru saja dibangunkan dari kondisi mati.
+  walau proses app baru saja dibangunkan dari kondisi mati. Trigger-nya sengaja layar-menyala
+  (`ACTION_SCREEN_ON`), bukan setelah-unlock (`ACTION_USER_PRESENT`) — `setFullScreenIntent`
+  cuma auto-muncul di atas lock screen kalau notifikasinya di-post SAAT layar masih
+  mati/terkunci (pembatasan resmi Android sejak API 29); begitu user selesai unlock, Android
+  cuma mau menampilkannya sebagai notifikasi biasa.
 - `service/BootCompletedReceiver.kt` — re-schedule setelah reboot
 - Onboarding (Android 14+) meminta `USE_FULL_SCREEN_INTENT` lewat halaman Settings khusus,
   dengan penjelasan jujur
